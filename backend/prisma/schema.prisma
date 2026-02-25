@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  KINE
+  STANDARD
+}
+
+enum PipelineStatut {
+  NOUVELLE_DEMANDE
+  BILAN_PROGRAMME
+  EN_COURS_DE_SOIN
+  FIN_DE_TRAITEMENT
+  SUIVI_PREVENTIF
+}
+
+enum StatutSeance {
+  PREVU
+  EFFECTUE
+  ABSENT
+  ANNULE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  PAYE
+  REJETE
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique // Supabase auth.users.id
+  email       String   @unique
+  role        Role     @default(STANDARD)
+  nom         String
+  prenom      String
+  rpps        String?
+  specialite  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ordonnances Ordonnance[] @relation("PraticienOrdonnances")
+  seances     Seance[] @relation("PraticienSeances")
+  taches      Tache[]
+
+  @@map("profiles")
+}
+
+model Patient {
+  id              String       @id @default(cuid())
+  nom             String
+  prenom          String
+  dateNaissance   DateTime
+  nir             String?
+  email           String?
+  telephone       String?
+  antecedents     String?
+  adresse         String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  ordonnances     Ordonnance[]
+  activites       Activite[]
+
+  @@map("patients")
+}
+
+model Medecin {
+  id          String       @id @default(cuid())
+  nom         String
+  prenom      String
+  rpps        String
+  specialite  String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  ordonnances Ordonnance[]
+
+  @@map("medecins")
+}
+
+model Ordonnance {
+  id                    String           @id @default(cuid())
+  dateOrdonnance        DateTime
+  nbSeancesPrescrites   Int
+  pathologie            String
+  typePriseEnCharge     String
+  statut                PipelineStatut   @default(NOUVELLE_DEMANDE)
+  montantEstime         Float?           // pour le pipeline CA
+  patientId             String
+  medecinId             String
+  praticienId           String?          // kiné assigné
+
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  patient               Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medecin               Medecin          @relation(fields: [medecinId], references: [id])
+  praticien             Profile?         @relation("PraticienOrdonnances", fields: [praticienId], references: [id])
+  seances               Seance[]
+  activites             Activite[]
+
+  @@map("ordonnances")
+}
+
+model Seance {
+  id            String         @id @default(cuid())
+  dateHeure     DateTime
+  statut        StatutSeance   @default(PREVU)
+  note          String?
+  cotation      String         // ex: AMK 9
+  montant       Float
+  ordonnanceId  String
+  praticienId   String
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  ordonnance    Ordonnance     @relation(fields: [ordonnanceId], references: [id], onDelete: Cascade)
+  praticien     Profile        @relation("PraticienSeances", fields: [praticienId], references: [id])
+  facture       Facture?       @relation(fields: [factureId], references: [id])
+  factureId     String?
+
+  @@map("seances")
+}
+
+model Facture {
+  id              String         @id @default(cuid())
+  dateEmission    DateTime       @default(now())
+  montantTotal    Float
+  statut          StatutPaiement @default(EN_ATTENTE)
+  seances         Seance[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("factures")
+}
+
+model Tache {
+  id            String   @id @default(cuid())
+  titre         String
+  description   String?
+  dateEcheance  DateTime
+  termine       Boolean  @default(false)
+  profileId     String
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       Profile  @relation(fields: [profileId], references: [id])
+
+  @@map("taches")
+}
+
+model Activite {
+  id           String   @id @default(cuid())
+  type         String   // "email", "note", "appel", "seance"
+  description  String
+  patientId    String?
+  ordonnanceId String?
+  createdAt    DateTime @default(now())
+
+  patient      Patient?  @relation(fields: [patientId], references: [id])
+  ordonnance   Ordonnance? @relation(fields: [ordonnanceId], references: [id])
+
+  @@map("activites")
+}
