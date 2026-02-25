@@ -122,8 +122,3 @@ npm run dev
 Accédez à l'application sur `http://localhost:3000`
 
 ---
-
-## 🔗 Liens Utiles
-
-- **GitHub** : https://github.com/41005194/MediCRM
-- **Supabase** : https://bljmmbtddeanwgszcacz.supabase.co
