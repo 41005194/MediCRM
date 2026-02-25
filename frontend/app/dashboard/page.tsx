@@ -76,14 +76,21 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mt-12">
-          <Button 
+        <div className="mt-12 flex gap-4">
+        <Button 
             size="lg" 
             className="bg-emerald-600 hover:bg-emerald-700" 
             onClick={() => router.push('/patients')}
-          >
-            Gérer les patients →
-          </Button>
+        >
+            Gérer les patients
+        </Button>
+        <Button 
+            size="lg" 
+            variant="outline"
+            onClick={() => router.push('/ordonnances')}
+        >
+            Voir le Pipeline Kanban →
+        </Button>
         </div>
       </div>
     </div>
