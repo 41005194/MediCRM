@@ -13,6 +13,7 @@ const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./auth/auth.module");
 const patient_module_1 = require("./patient/patient.module");
 const ordonnance_module_1 = require("./ordonnance/ordonnance.module");
+const brevo_module_1 = require("./brevo/brevo.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -27,6 +28,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             patient_module_1.PatientModule,
             ordonnance_module_1.OrdonnanceModule,
+            brevo_module_1.BrevoModule,
         ],
     })
 ], AppModule);

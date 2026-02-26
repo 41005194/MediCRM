@@ -193,6 +193,9 @@ export default function Dashboard() {
           <Button size="lg" variant="outline" onClick={() => router.push('/ordonnances')}>
             Pipeline Kanban
           </Button>
+          <Button size="lg" variant="outline" onClick={() => router.push('/historique')}>
+            Historique des activités
+          </Button>
         </div>
       </div>
     </div>

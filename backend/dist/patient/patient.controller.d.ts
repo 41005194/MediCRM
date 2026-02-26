@@ -1,24 +1,27 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { BrevoService } from 'src/brevo/brevo.service';
 export declare class PatientController {
     private prisma;
-    constructor(prisma: PrismaService);
+    private brevo;
+    constructor(prisma: PrismaService, brevo: BrevoService);
     findAll(): Promise<({
         ordonnances: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            patientId: string;
             dateOrdonnance: Date;
             nbSeancesPrescrites: number;
             pathologie: string;
             typePriseEnCharge: string;
             statut: import("@prisma/client").$Enums.PipelineStatut;
-            patientId: string;
+            montantEstime: number | null;
             medecinId: string;
             praticienId: string | null;
-            montantEstime: number | null;
         }[];
     } & {
+        id: string;
         nom: string;
         prenom: string;
         dateNaissance: Date;
@@ -27,11 +30,11 @@ export declare class PatientController {
         telephone: string | null;
         antecedents: string | null;
         adresse: string | null;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
     })[]>;
     create(dto: CreatePatientDto): Promise<{
+        id: string;
         nom: string;
         prenom: string;
         dateNaissance: Date;
@@ -40,7 +43,6 @@ export declare class PatientController {
         telephone: string | null;
         antecedents: string | null;
         adresse: string | null;
-        id: string;
         createdAt: Date;
         updatedAt: Date;
     }>;

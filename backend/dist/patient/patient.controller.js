@@ -17,10 +17,13 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const auth_guard_1 = require("../auth/auth.guard");
 const create_patient_dto_1 = require("./dto/create-patient.dto");
+const brevo_service_1 = require("../brevo/brevo.service");
 let PatientController = class PatientController {
     prisma;
-    constructor(prisma) {
+    brevo;
+    constructor(prisma, brevo) {
         this.prisma = prisma;
+        this.brevo = brevo;
     }
     async findAll() {
         return this.prisma.patient.findMany({
@@ -29,7 +32,16 @@ let PatientController = class PatientController {
         });
     }
     async create(dto) {
-        return this.prisma.patient.create({ data: dto });
+        const patient = await this.prisma.patient.create({ data: dto });
+        await this.brevo.sendTransactional(patient.email, 'Bienvenue chez MediCRM - Votre kiné vous attend', `<h2>Bonjour ${patient.prenom},</h2><p>Votre dossier a été créé avec succès.</p><p>Nous vous contacterons très vite pour votre premier bilan.</p>`);
+        await this.prisma.activite.create({
+            data: {
+                type: 'note',
+                description: `Nouveau patient créé : ${patient.prenom} ${patient.nom}`,
+                patientId: patient.id,
+            },
+        });
+        return patient;
     }
 };
 exports.PatientController = PatientController;
@@ -49,6 +61,6 @@ __decorate([
 exports.PatientController = PatientController = __decorate([
     (0, common_1.Controller)('patients'),
     (0, common_1.UseGuards)(auth_guard_1.SupabaseAuthGuard),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService, brevo_service_1.BrevoService])
 ], PatientController);
 //# sourceMappingURL=patient.controller.js.map

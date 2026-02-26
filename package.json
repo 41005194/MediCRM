@@ -7,6 +7,10 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build:backend": "cd backend && npm run build",
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
-    "postinstall": "npm run install:all"
+    "postinstall": "npm run install:all",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
 }
