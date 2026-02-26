@@ -38,7 +38,7 @@ model Profile {
   id          String   @id @default(cuid())
   userId      String   @unique // Supabase auth.users.id
   email       String   @unique
-  role        Role     @default(STANDARD)
+  role        Role     @default(KINE)
   nom         String
   prenom      String
   rpps        String?

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import CreatePatientModal from '@/components/modals/CreatePatientModal'
 
 type Patient = {
   id: string
@@ -63,7 +63,7 @@ export default function PatientsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-slate-800">Patients</h1>
-          <Button>Ajouter un patient</Button>
+            <CreatePatientModal onSuccess={() => window.location.reload()} />
         </div>
 
         <Card>

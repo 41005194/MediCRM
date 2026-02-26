@@ -16,12 +16,11 @@ export declare class PatientController {
             pathologie: string;
             typePriseEnCharge: string;
             statut: import("@prisma/client").$Enums.PipelineStatut;
-            montantEstime: number | null;
             medecinId: string;
             praticienId: string | null;
+            montantEstime: number | null;
         }[];
     } & {
-        id: string;
         nom: string;
         prenom: string;
         dateNaissance: Date;
@@ -30,11 +29,11 @@ export declare class PatientController {
         telephone: string | null;
         antecedents: string | null;
         adresse: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     })[]>;
     create(dto: CreatePatientDto): Promise<{
-        id: string;
         nom: string;
         prenom: string;
         dateNaissance: Date;
@@ -43,6 +42,7 @@ export declare class PatientController {
         telephone: string | null;
         antecedents: string | null;
         adresse: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
