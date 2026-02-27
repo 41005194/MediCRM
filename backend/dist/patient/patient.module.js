@@ -10,12 +10,13 @@ exports.PatientModule = void 0;
 const common_1 = require("@nestjs/common");
 const patient_controller_1 = require("./patient.controller");
 const prisma_module_1 = require("../prisma/prisma.module");
+const brevo_module_1 = require("../brevo/brevo.module");
 let PatientModule = class PatientModule {
 };
 exports.PatientModule = PatientModule;
 exports.PatientModule = PatientModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
+        imports: [prisma_module_1.PrismaModule, brevo_module_1.BrevoModule],
         controllers: [patient_controller_1.PatientController],
     })
 ], PatientModule);

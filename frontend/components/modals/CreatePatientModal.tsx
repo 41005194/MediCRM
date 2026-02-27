@@ -45,6 +45,13 @@ export default function CreatePatientModal({ onSuccess }: { onSuccess?: () => vo
     if (error) {
       toast.error(error.message)
     } else {
+      await supabase.from('activites').insert([{
+        id: crypto.randomUUID(),
+        type: 'patient',
+        description: `Nouveau patient créé : ${form.prenom} ${form.nom}`,
+        patientId: newPatient.id,
+        createdAt: new Date().toISOString()
+      }])
       toast.success('✅ Patient ajouté avec succès !')
       setOpen(false)
       setForm({ nom: '', prenom: '', dateNaissance: '', email: '', telephone: '', antecedents: '', adresse: '' })

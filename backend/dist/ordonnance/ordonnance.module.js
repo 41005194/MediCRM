@@ -10,12 +10,13 @@ exports.OrdonnanceModule = void 0;
 const common_1 = require("@nestjs/common");
 const ordonnance_controller_1 = require("./ordonnance.controller");
 const prisma_module_1 = require("../prisma/prisma.module");
+const brevo_module_1 = require("../brevo/brevo.module");
 let OrdonnanceModule = class OrdonnanceModule {
 };
 exports.OrdonnanceModule = OrdonnanceModule;
 exports.OrdonnanceModule = OrdonnanceModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
+        imports: [prisma_module_1.PrismaModule, brevo_module_1.BrevoModule],
         controllers: [ordonnance_controller_1.OrdonnanceController],
     })
 ], OrdonnanceModule);
