@@ -1,10 +1,9 @@
 'use client'
 
+import CreateOrdonnanceModal from '@/components/modals/CreateOrdonnanceModal'
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Kanban from '@/components/kanban/Kanban'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
 
 export default function OrdonnancesPage() {
   const [tab, setTab] = useState('kanban')
@@ -14,10 +13,7 @@ export default function OrdonnancesPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-slate-800">Pipeline des soins</h1>
-          <Button className="bg-emerald-600">
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle ordonnance
-          </Button>
+          <CreateOrdonnanceModal onSuccess={() => window.location.reload()} />
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
