@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import CreatePatientModal from '@/components/modals/CreatePatientModal'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import Papa from 'papaparse'
 
 type Patient = {
   id: string
@@ -70,12 +71,6 @@ export default function PatientsPage() {
     a.click()
   }
 
-  const importCSV = async (e: any) => {
-    const file = e.target.files[0]
-    // (implémentation simple avec PapaParse si tu veux, sinon je te donne la version complète)
-    toast.info('Import CSV à venir (version pro)')
-  }
-
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -83,7 +78,42 @@ export default function PatientsPage() {
           <h1 className="text-3xl font-bold text-slate-800">Patients</h1>
             <CreatePatientModal onSuccess={() => window.location.reload()} />
             <Button onClick={exportCSV}>Exporter CSV</Button>
-            <Button onClick={importCSV}>Importer CSV</Button>
+            <Button onClick={() => document.getElementById('csv-input')?.click()}>
+              Importer CSV
+            </Button>
+            <input
+              id="csv-input"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+
+                Papa.parse(file, {
+                  header: true,
+                  skipEmptyLines: true,
+                  complete: async (results) => {
+                    const patientsToInsert = results.data.map((row: any) => ({
+                      id: crypto.randomUUID(),
+                      nom: row.nom || '',
+                      prenom: row.prenom || '',
+                      dateNaissance: row.dateNaissance ? new Date(row.dateNaissance).toISOString() : null,
+                      email: row.email || null,
+                      telephone: row.telephone || null,
+                      antecedents: row.antecedents || null,
+                      adresse: row.adresse || null,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    }))
+
+                    const { error } = await supabase.from('patients').insert(patientsToInsert)
+                    if (error) toast.error(error.message)
+                    else toast.success(`${patientsToInsert.length} patients importés avec succès !`)
+                  }
+                })
+              }}
+            />
         </div>
 
         <Card>
