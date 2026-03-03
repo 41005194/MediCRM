@@ -14,13 +14,7 @@ export default function CreatePatientModal({ onSuccess }: { onSuccess?: () => vo
   const supabase = createClient()
 
   const [form, setForm] = useState({
-    nom: '',
-    prenom: '',
-    dateNaissance: '',
-    email: '',
-    telephone: '',
-    antecedents: '',
-    adresse: ''
+    nom: '', prenom: '', dateNaissance: '', email: '', telephone: '', antecedents: '', adresse: ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +34,11 @@ export default function CreatePatientModal({ onSuccess }: { onSuccess?: () => vo
       updatedAt: new Date().toISOString(),
     }
 
-    const { error } = await supabase.from('patients').insert([newPatient])
+    const { data: insertedPatient, error } = await supabase
+      .from('patients')
+      .insert([newPatient])
+      .select()
+      .single()
 
     if (error) {
       toast.error(error.message)
@@ -49,10 +47,31 @@ export default function CreatePatientModal({ onSuccess }: { onSuccess?: () => vo
         id: crypto.randomUUID(),
         type: 'patient',
         description: `Nouveau patient créé : ${form.prenom} ${form.nom}`,
-        patientId: newPatient.id,
+        patientId: insertedPatient.id,
         createdAt: new Date().toISOString()
       }])
-      toast.success('✅ Patient ajouté avec succès !')
+
+      if (insertedPatient.email) {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': process.env.NEXT_PUBLIC_BREVO_API_KEY!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'MediCRM - Cabinet Kiné', email: 'contact@medicrm.fr' },
+            to: [{ email: insertedPatient.email }],
+            subject: 'Bienvenue chez votre kiné - MediCRM',
+            htmlContent: `
+              <h2>Bonjour ${insertedPatient.prenom},</h2>
+              <p>Votre dossier patient a été créé avec succès.</p>
+              <p>Nous vous contacterons très vite pour votre premier bilan.</p>
+            `
+          })
+        })
+      }
+
+      toast.success('✅ Patient ajouté ! Email Brevo envoyé')
       setOpen(false)
       setForm({ nom: '', prenom: '', dateNaissance: '', email: '', telephone: '', antecedents: '', adresse: '' })
       onSuccess?.()
@@ -92,15 +111,6 @@ export default function CreatePatientModal({ onSuccess }: { onSuccess?: () => vo
             <Label>Téléphone</Label>
             <Input value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} />
           </div>
-          <div>
-            <Label>Antécédents</Label>
-            <Input value={form.antecedents} onChange={(e) => setForm({ ...form, antecedents: e.target.value })} />
-          </div>
-          <div>
-            <Label>Adresse</Label>
-            <Input value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} />
-          </div>
-
           <Button type="submit" className="w-full bg-emerald-600" disabled={loading}>
             {loading ? 'Ajout en cours...' : 'Créer le patient'}
           </Button>
