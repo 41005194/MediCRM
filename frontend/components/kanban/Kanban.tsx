@@ -122,21 +122,20 @@ export default function Kanban() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
-
     if (!over || active.id === over.id) return
 
     const newStatut = over.id as string
 
-    try {
-      await supabase
-        .from('ordonnances')
-        .update({ statut: newStatut })
-        .eq('id', active.id)
+    const { error } = await supabase
+      .from('ordonnances')
+      .update({ statut: newStatut })
+      .eq('id', active.id)
 
-    } catch (err) {
-      toast.error('Erreur déplacement')
-      console.error(err)
+    if (error) {
+      toast.error('Impossible de déplacer l’ordonnance')
+      console.error(error)
     }
+
   }
 
   return (

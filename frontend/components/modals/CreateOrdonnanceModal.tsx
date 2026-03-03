@@ -55,6 +55,15 @@ export default function CreateOrdonnanceModal({ onSuccess }: { onSuccess?: () =>
     if (error) {
       toast.error(error.message)
     } else {
+      // === LOG ACTIVITÉ POUR ORDONNANCE ===
+      await supabase.from('activites').insert([{
+        id: crypto.randomUUID(),
+        type: 'ordonnance',
+        description: `Nouvelle ordonnance créée pour ${form.pathologie}`,
+        ordonnanceId: newOrdo.id,
+        patientId: newOrdo.patientId,
+        createdAt: new Date().toISOString()
+      }])
       toast.success('✅ Ordonnance créée avec succès !')
       setOpen(false)
       onSuccess?.()

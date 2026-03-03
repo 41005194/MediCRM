@@ -18,11 +18,11 @@ export default function OrdonnancesPage() {
     if (tab === 'liste') {
       supabase
         .from('ordonnances')
-        .select('*, patient(*), medecin(*), praticien(*)')
+        .select('*, patient(*), medecin(*)')
         .order('createdAt', { ascending: false })
         .then(({ data }) => setOrdonnancesListe(data || []))
     }
-  }, [tab])
+  }, [tab, supabase])
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
@@ -67,7 +67,7 @@ export default function OrdonnancesPage() {
                         <TableCell>{o.patient?.prenom} {o.patient?.nom}</TableCell>
                         <TableCell>{o.medecin?.prenom} {o.medecin?.nom}</TableCell>
                         <TableCell>{o.pathologie}</TableCell>
-                        <TableCell><span className="capitalize">{o.statut.replace('_', ' ')}</span></TableCell>
+                        <TableCell className="capitalize">{o.statut.replace(/_/g, ' ')}</TableCell>
                         <TableCell>{new Date(o.dateOrdonnance).toLocaleDateString('fr-FR')}</TableCell>
                       </TableRow>
                     ))}
