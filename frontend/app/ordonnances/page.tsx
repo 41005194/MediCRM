@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Kanban from '@/components/kanban/Kanban'
 import CreateOrdonnanceModal from '@/components/modals/CreateOrdonnanceModal'
@@ -7,7 +8,6 @@ import CreateMedecinModal from '@/components/modals/CreateMedecinModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { createClient } from '@/lib/supabase'
-import { useEffect, useState } from 'react'
 
 export default function OrdonnancesPage() {
   const [tab, setTab] = useState('kanban')
@@ -18,11 +18,11 @@ export default function OrdonnancesPage() {
     if (tab === 'liste') {
       supabase
         .from('ordonnances')
-        .select('*, patient(*), medecin(*)')
+        .select('*, patients(nom, prenom), medecins(nom, prenom)')
         .order('createdAt', { ascending: false })
         .then(({ data }) => setOrdonnancesListe(data || []))
     }
-  }, [tab, supabase])
+  }, [tab])
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
@@ -48,7 +48,7 @@ export default function OrdonnancesPage() {
           <TabsContent value="liste">
             <Card>
               <CardHeader>
-                <CardTitle>Liste complète des ordonnances ({ordonnancesListe.length})</CardTitle>
+                <CardTitle>Liste complète ({ordonnancesListe.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
