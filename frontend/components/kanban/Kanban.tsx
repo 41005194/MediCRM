@@ -2,6 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { useSortable } from '@dnd-kit/sortable'
+import { useDroppable } from '@dnd-kit/core'   // ← obligatoire pour le drop
+import { CSS } from '@dnd-kit/utilities'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -14,36 +30,60 @@ const STATUTS = [
   { id: 'SUIVI_PREVENTIF', label: 'Suivi préventif' },
 ]
 
+function SortableCard({ ordonnance }: { ordonnance: any }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ordonnance.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="p-4 mb-3 cursor-grab active:cursor-grabbing shadow-sm"
+    >
+      <div className="font-medium">
+        {ordonnance.patients?.prenom} {ordonnance.patients?.nom}
+      </div>
+      <div className="text-sm text-slate-600 mt-1">{ordonnance.pathologie}</div>
+    </Card>
+  )
+}
+
+function DroppableColumn({ id, label, children, count }: { 
+  id: string; 
+  label: string; 
+  children: React.ReactNode; 
+  count: number 
+}) {
+  const { setNodeRef } = useDroppable({ id })
+
+  return (
+    <div ref={setNodeRef} className="bg-slate-50 p-4 rounded-xl border min-h-[500px]">
+      <div className="font-bold mb-4 flex justify-between sticky top-0 bg-slate-50 z-10 py-2">
+        {label}
+        <Badge>{count}</Badge>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
+
 export default function Kanban() {
   const supabase = createClient()
   const [columns, setColumns] = useState<Record<string, any[]>>({})
-  const [total, setTotal] = useState(0)
+
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor))
 
   const loadData = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('ordonnances')
-      .select(`
-        *,
-        patients(nom, prenom),
-        profiles(nom, prenom)
-      `)
+      .select('*, patients(nom, prenom), profiles(nom, prenom)')
       .order('createdAt', { ascending: false })
-
-    if (error) {
-      console.error("❌ Erreur Supabase :", error)
-      toast.error("Erreur chargement Kanban")
-      return
-    }
-
-    setTotal(data?.length || 0)
 
     const grouped: Record<string, any[]> = {}
     STATUTS.forEach(s => grouped[s.id] = [])
-
-    data?.forEach((o: any) => {
-      if (grouped[o.statut]) grouped[o.statut].push(o)
-    })
-
+    data?.forEach(o => grouped[o.statut]?.push(o))
     setColumns(grouped)
   }
 
@@ -55,37 +95,63 @@ export default function Kanban() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ordonnances' }, loadData)
       .subscribe()
 
-    return () => {
-      channel.unsubscribe()
-    }
+    return () => channel.unsubscribe()
   }, [])
 
-  return (
-    <div>
-      <div className="mb-6 p-4 bg-yellow-100 rounded-xl text-sm">
-        <strong>Debug :</strong> {total} ordonnance(s) trouvée(s) dans la base
-      </div>
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
 
+    const newStatut = over.id as string
+    const oldStatut = Object.keys(columns).find(key => 
+      columns[key].some(o => o.id === active.id)
+    )
+
+    if (!oldStatut) return
+
+    // 1. Mise à jour optimiste (fluide, sans reload)
+    setColumns(prev => {
+      const newColumns = { ...prev }
+      const cardIndex = newColumns[oldStatut].findIndex(o => o.id === active.id)
+      if (cardIndex === -1) return prev
+
+      const [movedCard] = newColumns[oldStatut].splice(cardIndex, 1)
+      movedCard.statut = newStatut
+      newColumns[newStatut] = [...(newColumns[newStatut] || []), movedCard]
+
+      return newColumns
+    })
+
+    // 2. Mise à jour réelle en base
+    const { error } = await supabase
+      .from('ordonnances')
+      .update({ statut: newStatut })
+      .eq('id', active.id)
+
+    if (error) {
+      toast.error('Impossible de déplacer')
+      loadData() // revert en cas d’erreur
+    }
+  }
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {STATUTS.map((col) => (
-          <div key={col.id} className="bg-slate-50 p-4 rounded-xl border">
-            <div className="font-bold mb-3 flex justify-between">
-              {col.label}
-              <Badge>{columns[col.id]?.length || 0}</Badge>
-            </div>
-            <div className="space-y-3 min-h-[400px]">
+          <DroppableColumn
+            key={col.id}
+            id={col.id}
+            label={col.label}
+            count={columns[col.id]?.length || 0}
+          >
+            <SortableContext items={columns[col.id]?.map(o => o.id) || []} strategy={verticalListSortingStrategy}>
               {columns[col.id]?.map((o) => (
-                <Card key={o.id} className="p-4">
-                  <div className="font-medium">
-                    {o.patients?.prenom} {o.patients?.nom}
-                  </div>
-                  <div className="text-sm text-slate-600">{o.pathologie}</div>
-                </Card>
-              )) || <div className="text-slate-400 text-center py-8">Aucune ordonnance ici</div>}
-            </div>
-          </div>
+                <SortableCard key={o.id} ordonnance={o} />
+              ))}
+            </SortableContext>
+          </DroppableColumn>
         ))}
       </div>
-    </div>
+    </DndContext>
   )
 }

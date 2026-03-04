@@ -64,8 +64,8 @@ export default function OrdonnancesPage() {
                   <TableBody>
                     {ordonnancesListe.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell>{o.patient?.prenom} {o.patient?.nom}</TableCell>
-                        <TableCell>{o.medecin?.prenom} {o.medecin?.nom}</TableCell>
+                        <TableCell>{o.patients?.prenom} {o.patients?.nom}</TableCell>
+                        <TableCell>{o.medecins?.prenom} {o.medecins?.nom}</TableCell>
                         <TableCell>{o.pathologie}</TableCell>
                         <TableCell className="capitalize">{o.statut.replace(/_/g, ' ')}</TableCell>
                         <TableCell>{new Date(o.dateOrdonnance).toLocaleDateString('fr-FR')}</TableCell>
