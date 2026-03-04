@@ -98,12 +98,47 @@ export default function Kanban() {
 
     if (!over || active.id === over.id) return
 
+    // update server side
     const { error } = await supabase
       .from('ordonnances')
       .update({ statut: over.id })
       .eq('id', active.id)
 
-    if (error) toast.error('Impossible de déplacer')
+    if (error) {
+      toast.error('Impossible de déplacer')
+      return
+    }
+
+    // optimistic local update so UI reflects the change immediately
+    setColumns((prev) => {
+      const columnsCopy: Record<string, any[]> = {}
+      // clone arrays to avoid mutating state directly
+      Object.keys(prev).forEach((key) => {
+        columnsCopy[key] = [...(prev[key] || [])]
+      })
+
+      let moved: any = null
+      // remove from old status
+      Object.keys(columnsCopy).forEach((key) => {
+        columnsCopy[key] = columnsCopy[key].filter((o) => {
+          if (o.id === active.id) {
+            moved = o
+            return false
+          }
+          return true
+        })
+      })
+      // if we found the item, push it into new status column
+      if (moved) {
+        moved.statut = over.id as string
+        columnsCopy[over.id as string] = [
+          ...(columnsCopy[over.id as string] || []),
+          moved,
+        ]
+      }
+
+      return columnsCopy
+    })
   }
 
   const activeCard = Object.values(columns).flat().find(o => o.id === activeId)
@@ -124,9 +159,12 @@ export default function Kanban() {
             count={columns[col.id]?.length || 0}
           >
             <SortableContext items={columns[col.id]?.map(o => o.id) || []} strategy={verticalListSortingStrategy}>
-              {columns[col.id]?.map((o) => (
-                <SortableCard key={o.id} ordonnance={o} />
-              ))}
+              {columns[col.id]?.
+                // while dragging, skip rendering the original card to avoid duplication
+                filter((o) => o.id !== activeId)
+                .map((o) => (
+                  <SortableCard key={o.id} ordonnance={o} />
+                ))}
             </SortableContext>
           </DroppableColumn>
         ))}
