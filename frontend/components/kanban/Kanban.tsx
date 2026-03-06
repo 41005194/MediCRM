@@ -89,7 +89,10 @@ export default function Kanban() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ordonnances' }, loadData)
       .subscribe()
 
-    return () => channel.unsubscribe()
+    // Cleanup correct (sans Promise)
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const handleDragEnd = async (event: DragEndEvent) => {
