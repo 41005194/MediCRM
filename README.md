@@ -1,6 +1,6 @@
 # MediCRM - CRM Cabinet de Kinésithérapie
 
-**Lien démo** : [ton lien Vercel]
+**Lien démo** : https://medi-84tz6fywj-41005194s-projects.vercel.app/
 
 ## Architecture Technique
 - **Frontend** : Next.js 15 (App Router) + TypeScript + Tailwind + shadcn/ui + Recharts + @dnd-kit
