@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Home, Users, List, History, FileText, LogOut } from 'lucide-react'
+import { Heart, Home, Users, List, History, FileText, LogOut, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -12,8 +12,9 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/patients', label: 'Patients', icon: Users },
   { href: '/ordonnances', label: 'Ordonnances', icon: List },
+  { href: '/rendezvous', label: 'Mes rendez-vous', icon: Calendar },
   { href: '/historique', label: 'Historique', icon: History },
-  { href: '/factures', label: 'Factures', icon: FileText },   // ← visible pour tout le monde (Kine + Admin)
+  { href: '/factures', label: 'Factures', icon: FileText },
 ]
 
 export default function Sidebar() {
