@@ -14,7 +14,7 @@ export default function CreatePremierBilanModal({
   onClose,
   onSuccess
 }: {
-  ordonnance: any | null
+  ordonnance: any
   open: boolean
   onClose: () => void
   onSuccess: () => void
@@ -29,7 +29,10 @@ export default function CreatePremierBilanModal({
 
     setLoading(true)
 
-    const newSeance = {
+    const now = new Date().toISOString()
+
+    // 1. Création de la séance
+    const { data: seance } = await supabase.from('seances').insert([{
       id: crypto.randomUUID(),
       ordonnanceId: ordonnance.id,
       praticienId: 'k1',
@@ -38,25 +41,26 @@ export default function CreatePremierBilanModal({
       note: 'Premier bilan',
       cotation: 'AMK 9',
       montant: 9.0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
+    }]).select().single()
+
+    // 2. Création automatique de la facture
+    if (seance) {
+      await supabase.from('factures').insert([{
+        id: crypto.randomUUID(),
+        montantTotal: 9.0,
+        statut: 'EN_ATTENTE',
+        patient_id: ordonnance.patientId,
+        createdAt: now,
+        updatedAt: now
+      }])
     }
 
-    const { error: seanceError } = await supabase.from('seances').insert([newSeance])
+    // 3. Déplacement de l'ordonnance
+    await supabase.from('ordonnances').update({ statut: 'BILAN_PROGRAMME' }).eq('id', ordonnance.id)
 
-    if (seanceError) {
-      toast.error(seanceError.message)
-      setLoading(false)
-      return
-    }
-
-    // Déplacement automatique
-    await supabase
-      .from('ordonnances')
-      .update({ statut: 'BILAN_PROGRAMME' })
-      .eq('id', ordonnance.id)
-
-    toast.success('Premier bilan créé + email envoyé')
+    toast.success('Premier bilan créé + facture générée')
     setLoading(false)
     onClose()
     onSuccess()
@@ -68,23 +72,15 @@ export default function CreatePremierBilanModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            Premier bilan - {ordonnance.patients?.prenom} {ordonnance.patients?.nom}
-          </DialogTitle>
+          <DialogTitle>Premier bilan — {ordonnance.patients?.prenom} {ordonnance.patients?.nom}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Date et heure du premier bilan</Label>
-            <Input
-              type="datetime-local"
-              value={dateHeure}
-              onChange={(e) => setDateHeure(e.target.value)}
-              required
-            />
+            <Label>Date et heure du bilan</Label>
+            <Input type="datetime-local" value={dateHeure} onChange={(e) => setDateHeure(e.target.value)} required />
           </div>
-
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Création en cours...' : 'Créer le bilan + envoyer email'}
+            Créer le bilan + facture
           </Button>
         </form>
       </DialogContent>

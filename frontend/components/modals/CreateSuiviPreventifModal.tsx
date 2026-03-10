@@ -59,6 +59,15 @@ export default function CreateSuiviPreventifModal({
         createdAt: now,
         updatedAt: now
       }])
+        // Création de facture pour chaque séance
+        await supabase.from('factures').insert([{
+        id: crypto.randomUUID(),
+        montantTotal: 9.0,
+        statut: 'EN_ATTENTE',
+        patient_id: ordonnance.patientId,
+        createdAt: now,
+        updatedAt: now
+        }])
 
       if (!error) successCount++
     }

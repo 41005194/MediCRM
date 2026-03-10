@@ -68,6 +68,7 @@ model Patient {
 
   ordonnances     Ordonnance[]
   activites       Activite[]
+  facture         Facture[]
 
   @@map("patients")
 }
@@ -136,6 +137,9 @@ model Facture {
   dateEmission    DateTime       @default(now())
   montantTotal    Float
   statut          StatutPaiement @default(EN_ATTENTE)
+  patient_id      String?
+  patient         Patient?       @relation(fields: [patient_id], references: [id])
+
   seances         Seance[]
 
   createdAt       DateTime       @default(now())

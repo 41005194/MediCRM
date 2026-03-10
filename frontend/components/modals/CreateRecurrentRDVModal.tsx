@@ -32,6 +32,7 @@ export default function CreateRecurrentRDVModal({
 
     const startDate = new Date()
     const targetDay = parseInt(dayOfWeek)
+    const now = new Date().toISOString()
 
     let successCount = 0
 
@@ -50,9 +51,18 @@ export default function CreateRecurrentRDVModal({
         note: `Séance récurrente ${i + 1}/${weeks}`,
         cotation: 'AMK 9',
         montant: 9.0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: now,
+        updatedAt: now
       }])
+        // Création de facture pour chaque séance
+        await supabase.from('factures').insert([{
+        id: crypto.randomUUID(),
+        montantTotal: 9.0,
+        statut: 'EN_ATTENTE',
+        patient_id: ordonnance.patientId,
+        createdAt: now,
+        updatedAt: now
+        }])
 
       if (!error) successCount++
     }
