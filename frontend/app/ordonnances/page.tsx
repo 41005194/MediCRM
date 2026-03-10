@@ -13,6 +13,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import CreatePremierBilanModal from '@/components/modals/CreatePremierBilanModal'
 import CreateRecurrentRDVModal from '@/components/modals/CreateRecurrentRDVModal'
 import ListeRDVModal from '@/components/modals/ListeRDVModal'
+import CreateSuiviPreventifModal from '@/components/modals/CreateSuiviPreventifModal'
 
 export default function OrdonnancesPage() {
   const [tab, setTab] = useState('kanban')
@@ -183,6 +184,12 @@ export default function OrdonnancesPage() {
         ordonnance={currentOrdonnance}
         open={showListeRDVModal}
         onClose={() => setShowListeRDVModal(false)}
+      />
+      <CreateSuiviPreventifModal
+        ordonnance={currentOrdonnance}
+        open={showSuiviModal}
+        onClose={() => setShowSuiviModal(false)}
+        onSuccess={() => window.location.reload()}
       />
     </div>
   )
