@@ -111,6 +111,11 @@ export default function OrdonnancesPage() {
                       setCurrentOrdonnance(ordonnance)
                       setShowSuiviModal(true)
                     }
+                    else if (ordonnance.statut === 'SUIVI_PREVENTIF') {
+                      // Ouvrir pop-up liste RDV
+                      setCurrentOrdonnance(ordonnance)
+                      setShowListeRDVModal(true)
+                    }
                   }} 
                 />
               </TabsContent>
