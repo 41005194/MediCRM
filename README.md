@@ -30,6 +30,6 @@ npm run dev
 ```
 
 ## Jeu de données test
-Utilisez le seed.sql dans backend/prisma/seed.sql
+Utilisez le seed.sql présent dans backend/prisma/seed.sql dans l'éditeur SQL de Supabase
 
 Auteur : Liam PROROVNER – Formation Communication Digitale
