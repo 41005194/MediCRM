@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Heart, Home, Users, List, History, LogOut } from 'lucide-react'
+import { Heart, Home, Users, List, History, FileText, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/patients', label: 'Patients', icon: Users },
   { href: '/ordonnances', label: 'Ordonnances', icon: List },
   { href: '/historique', label: 'Historique', icon: History },
+  { href: '/factures', label: 'Factures', icon: FileText },   // ← visible pour tout le monde (Kine + Admin)
 ]
 
 export default function Sidebar() {
@@ -28,7 +29,6 @@ export default function Sidebar() {
 
   return (
     <div className="fixed left-0 top-0 h-screen w-72 bg-white border-r border-slate-200 flex flex-col z-50 shadow-sm">
-      {/* Logo */}
       <div className="p-6 border-b flex items-center gap-3">
         <Heart className="w-9 h-9 text-emerald-600" />
         <div>
@@ -37,7 +37,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4">
         <div className="space-y-1">
           {navItems.map((item) => {
@@ -48,9 +47,7 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-slate-600 hover:bg-slate-100'
+                  isActive ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -61,13 +58,8 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* User section (bas) */}
-      <div className="p-4 border-t mt-auto">
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
-        >
+      <div className="p-4 border-t">
+        <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-red-600 hover:bg-red-50">
           <LogOut className="w-5 h-5 mr-3" />
           Déconnexion
         </Button>
