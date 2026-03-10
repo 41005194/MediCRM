@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
 import CreatePremierBilanModal from '@/components/modals/CreatePremierBilanModal'
+import CreateRecurrentRDVModal from '@/components/modals/CreateRecurrentRDVModal'
 
 export default function OrdonnancesPage() {
   const [tab, setTab] = useState('kanban')
@@ -169,6 +170,12 @@ export default function OrdonnancesPage() {
         ordonnance={currentOrdonnance}
         open={showBilanModal}
         onClose={() => setShowBilanModal(false)}
+        onSuccess={() => window.location.reload()}
+      />
+      <CreateRecurrentRDVModal
+        ordonnance={currentOrdonnance}
+        open={showRecurrentModal}
+        onClose={() => setShowRecurrentModal(false)}
         onSuccess={() => window.location.reload()}
       />
     </div>
