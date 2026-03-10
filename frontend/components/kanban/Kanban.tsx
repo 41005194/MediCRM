@@ -31,16 +31,41 @@ const STATUTS = [
   { id: 'SUIVI_PREVENTIF', label: 'Suivi préventif' },
 ]
 
-function SortableCard({ ordonnance }: { ordonnance: any }) {
+function SortableCard({ 
+  ordonnance, 
+  onActionClick 
+}: { 
+  ordonnance: any; 
+  onActionClick: (ordonnance: any) => void 
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: ordonnance.id })
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
-    <Card ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 mb-3 cursor-grab active:cursor-grabbing shadow-sm">
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="p-4 mb-3 cursor-grab active:cursor-grabbing shadow-sm group relative"
+    >
       <div className="font-medium">
         {ordonnance.patients?.prenom} {ordonnance.patients?.nom}
       </div>
       <div className="text-sm text-slate-600 mt-1">{ordonnance.pathologie}</div>
+
+      {/* Menu à trois points - Version renforcée */}
+      <button
+        onPointerDown={(e) => e.stopPropagation()} // Empêche le drag de démarrer ici
+        onClick={(e) => {
+          e.stopPropagation()
+          e.preventDefault()
+          onActionClick(ordonnance)
+        }}
+        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 hover:bg-slate-100 p-1 rounded text-slate-500 hover:text-slate-700 pointer-events-auto z-10"
+      >
+        ⋮
+      </button>
     </Card>
   )
 }
@@ -62,7 +87,11 @@ function DroppableColumn({ id, label, children, count }: { id: string; label: st
   )
 }
 
-export default function Kanban() {
+export default function Kanban({ 
+  onActionClick 
+}: { 
+  onActionClick: (ordonnance: any) => void 
+}) {
   const supabase = createClient()
   const [columns, setColumns] = useState<Record<string, any[]>>({})
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -101,7 +130,6 @@ export default function Kanban() {
 
     if (!over || active.id === over.id) return
 
-    // update server side
     const { error } = await supabase
       .from('ordonnances')
       .update({ statut: over.id })
@@ -162,18 +190,18 @@ export default function Kanban() {
             count={columns[col.id]?.length || 0}
           >
             <SortableContext items={columns[col.id]?.map(o => o.id) || []} strategy={verticalListSortingStrategy}>
-              {columns[col.id]?.
-                // while dragging, skip rendering the original card to avoid duplication
-                filter((o) => o.id !== activeId)
-                .map((o) => (
-                  <SortableCard key={o.id} ordonnance={o} />
-                ))}
+              {columns[col.id]?.filter((o) => o.id !== activeId).map((o) => (
+                <SortableCard 
+                  key={o.id} 
+                  ordonnance={o} 
+                  onActionClick={onActionClick} 
+                />
+              ))}
             </SortableContext>
           </DroppableColumn>
         ))}
       </div>
 
-      {/* DragOverlay = carte qui suit la souris pendant le drag */}
       <DragOverlay>
         {activeCard && (
           <Card className="p-4 shadow-xl bg-white border-2 border-emerald-500 scale-105">

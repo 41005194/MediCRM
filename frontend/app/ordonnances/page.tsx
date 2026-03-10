@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
+import CreatePremierBilanModal from '@/components/modals/CreatePremierBilanModal'
 
 export default function OrdonnancesPage() {
   const [tab, setTab] = useState('kanban')
@@ -20,6 +21,13 @@ export default function OrdonnancesPage() {
   const [searchListe, setSearchListe] = useState('')
   const [sortListe, setSortListe] = useState<'date' | 'patient' | 'statut'>('date')
   const [ordonnancesListeFiltrees, setOrdonnancesListeFiltrees] = useState<any[]>([])
+
+  // États pour les modals
+  const [currentOrdonnance, setCurrentOrdonnance] = useState<any>(null)
+  const [showBilanModal, setShowBilanModal] = useState(false)
+  const [showRecurrentModal, setShowRecurrentModal] = useState(false)
+  const [showListeRDVModal, setShowListeRDVModal] = useState(false)
+  const [showSuiviModal, setShowSuiviModal] = useState(false)
 
   // Chargement des ordonnances pour la vue liste
   useEffect(() => {
@@ -78,7 +86,30 @@ export default function OrdonnancesPage() {
               </TabsList>
 
               <TabsContent value="kanban">
-                <Kanban />
+                <Kanban 
+                  onActionClick={(ordonnance) => {
+                    if (ordonnance.statut === 'NOUVELLE_DEMANDE') {
+                      // Ouvrir pop-up premier bilan
+                      setCurrentOrdonnance(ordonnance)
+                      setShowBilanModal(true)
+                    } 
+                    else if (ordonnance.statut === 'BILAN_PROGRAMME') {
+                      // Ouvrir pop-up RDV récurrents
+                      setCurrentOrdonnance(ordonnance)
+                      setShowRecurrentModal(true)
+                    } 
+                    else if (ordonnance.statut === 'EN_COURS_DE_SOIN') {
+                      // Ouvrir pop-up liste RDV
+                      setCurrentOrdonnance(ordonnance)
+                      setShowListeRDVModal(true)
+                    } 
+                    else if (ordonnance.statut === 'FIN_DE_TRAITEMENT') {
+                      // Ouvrir pop-up suivi préventif
+                      setCurrentOrdonnance(ordonnance)
+                      setShowSuiviModal(true)
+                    }
+                  }} 
+                />
               </TabsContent>
 
               <TabsContent value="liste">
@@ -134,6 +165,12 @@ export default function OrdonnancesPage() {
           </div>
         </div>
       </div>
+      <CreatePremierBilanModal
+        ordonnance={currentOrdonnance}
+        open={showBilanModal}
+        onClose={() => setShowBilanModal(false)}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   )
 }
