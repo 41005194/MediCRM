@@ -45,14 +45,13 @@ export default function Dashboard() {
         .gte('dateHeure', aujourdHui)
         .lt('dateHeure', new Date(new Date().setDate(new Date().getDate() + 1)).toISOString())
 
-      // 4. CA du mois + mois précédent + évolution (simplifié)
-      const { data: facturesMois } = await supabase
+      // 4. CA du mois (en se basant sur les factures payées)
+      const { data: facturesPayees } = await supabase
         .from('factures')
         .select('montantTotal')
         .eq('statut', 'PAYE')
-        .gte('dateEmission', debutMois)
 
-      const caMois = facturesMois?.reduce((sum, f) => sum + (f.montantTotal || 0), 0) || 0
+      const caMois = facturesPayees?.reduce((sum, f) => sum + (f.montantTotal || 0), 0) || 0
 
       // Graphique évolution (6 derniers mois)
       const mois = []
