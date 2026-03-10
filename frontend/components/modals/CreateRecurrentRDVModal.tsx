@@ -31,37 +31,47 @@ export default function CreateRecurrentRDVModal({
     setLoading(true)
 
     const startDate = new Date()
-    const dayMap = [6, 0, 1, 2, 3, 4, 5] // JS Sunday=0 → Monday=1
     const targetDay = parseInt(dayOfWeek)
+
+    let successCount = 0
 
     for (let i = 0; i < weeks; i++) {
       const date = new Date(startDate)
-      date.setDate(date.getDate() + i * 7)
-      date.setDate(date.getDate() + (targetDay - date.getDay() + 7) % 7)
-      date.setHours(parseInt(time.split(':')[0]), parseInt(time.split(':')[1]))
+      // Calcul du prochain jour de la semaine
+      date.setDate(date.getDate() + i * 7 + ((targetDay - date.getDay() + 7) % 7))
+      date.setHours(parseInt(time.split(':')[0]), parseInt(time.split(':')[1]), 0, 0)
 
-      await supabase.from('seances').insert([{
+      const { error } = await supabase.from('seances').insert([{
         id: crypto.randomUUID(),
         ordonnanceId: ordonnance.id,
-        praticienId: 'k1',
+        praticienId: 'k1', // À adapter plus tard avec l'utilisateur connecté
         dateHeure: date.toISOString(),
         statut: 'PREVU',
         note: `Séance récurrente ${i + 1}/${weeks}`,
         cotation: 'AMK 9',
-        montant: 9.0
+        montant: 9.0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }])
+
+      if (!error) successCount++
     }
 
-    // Déplacement automatique vers "En cours de soin"
+    // Déplacement automatique de l'ordonnance
     await supabase
       .from('ordonnances')
       .update({ statut: 'EN_COURS_DE_SOIN' })
       .eq('id', ordonnance.id)
 
-    toast.success(`${weeks} rendez-vous récurrents créés !`)
+    if (successCount > 0) {
+      toast.success(`${successCount} rendez-vous récurrents créés avec succès !`)
+      onSuccess()
+      onClose()
+    } else {
+      toast.error("Aucun rendez-vous n'a pu être créé")
+    }
+
     setLoading(false)
-    onClose()
-    onSuccess()
   }
 
   if (!ordonnance) return null
@@ -77,7 +87,12 @@ export default function CreateRecurrentRDVModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Nombre de semaines</Label>
-            <Input type="number" value={weeks} onChange={(e) => setWeeks(parseInt(e.target.value))} min="1" />
+            <Input 
+              type="number" 
+              value={weeks} 
+              onChange={(e) => setWeeks(parseInt(e.target.value))} 
+              min="1" 
+            />
           </div>
 
           <div>
@@ -97,12 +112,12 @@ export default function CreateRecurrentRDVModal({
           </div>
 
           <div>
-            <Label>Heure</Label>
+            <Label>Heure du rendez-vous</Label>
             <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Création des RDV...' : `Créer ${weeks} rendez-vous récurrents`}
+            {loading ? 'Création en cours...' : `Créer ${weeks} rendez-vous récurrents`}
           </Button>
         </form>
       </DialogContent>
