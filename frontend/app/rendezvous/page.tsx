@@ -25,6 +25,8 @@ export default function MesRendezVousPage() {
   const [ordonnances, setOrdonnances] = useState<any[]>([])
   const [selectedOrdonnanceId, setSelectedOrdonnanceId] = useState('')
   const [note, setNote] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [allKines, setAllKines] = useState<any[]>([])
 
     const getMonday = (date: Date) => {
     const d = new Date(date);
@@ -35,25 +37,39 @@ export default function MesRendezVousPage() {
     };
 
   // 1. Récupère l'utilisateur connecté + son profil via email
-  useEffect(() => {
+    useEffect(() => {
     const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user?.email) return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.email) return
 
-      const { data: profile } = await supabase
+        // On récupère l'ID et le rôle 
+        const { data: profile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, role')
         .eq('email', user.email)
         .single()
 
-      if (profile) {
-        setPraticienId(profile.id)
-      } else {
-        toast.error("Aucun profil kiné trouvé pour cet email")
-      }
+        if (profile) {
+        if (profile.role === 'ADMIN') {
+            setIsAdmin(true)
+            // Charger tous les profils KINE 
+            const { data: kines } = await supabase
+            .from('profiles')
+            .select('id, nom, prenom')
+            .eq('role', 'KINE')
+            
+            setAllKines(kines || [])
+            // Par défaut, on peut sélectionner le premier kiné de la liste
+            if (kines && kines.length > 0) setPraticienId(kines[0].id)
+        } else {
+            setPraticienId(profile.id)
+        }
+        } else {
+        toast.error("Aucun profil trouvé")
+        }
     }
     loadProfile()
-  }, [])
+    }, [])
 
     useEffect(() => {
         if (!praticienId) return
@@ -205,7 +221,30 @@ export default function MesRendezVousPage() {
       <div className="flex-1 ml-72 p-8 bg-slate-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Mes rendez-vous</h1>
+            <h1 className="text-3xl font-bold">
+                {isAdmin ? "Gestion des agendas" : "Mes rendez-vous"}
+            </h1>
+
+            {/* Sélecteur visible uniquement pour l'ADMIN */}
+            {isAdmin && (
+            <div className="flex items-center gap-2 ml-4 bg-white p-2 rounded-lg border">
+                <Label htmlFor="kine-select" className="text-xs font-semibold text-slate-500 uppercase">
+                Calendrier de :
+                </Label>
+                <select
+                id="kine-select"
+                className="bg-transparent text-sm font-medium focus:outline-none border-none"
+                value={praticienId || ''}
+                onChange={(e) => setPraticienId(e.target.value)}
+                >
+                {allKines.map(kine => (
+                    <option key={kine.id} value={kine.id}>
+                    {kine.prenom} {kine.nom}
+                    </option>
+                ))}
+                </select>
+            </div>
+            )}
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={goToPrevWeek}><ChevronLeft className="w-4 h-4" /></Button>
