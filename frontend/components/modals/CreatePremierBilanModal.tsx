@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -21,7 +21,24 @@ export default function CreatePremierBilanModal({
 }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [praticienId, setPraticienId] = useState<string | null>(null)
   const [dateHeure, setDateHeure] = useState('')
+
+  // Récupération du kiné connecté
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('userId', user.id)
+          .single()
+        if (profile) setPraticienId(profile.id)
+      }
+    }
+    getProfile()
+  }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,7 +52,7 @@ export default function CreatePremierBilanModal({
     const { data: seance } = await supabase.from('seances').insert([{
       id: crypto.randomUUID(),
       ordonnanceId: ordonnance.id,
-      praticienId: 'k1',
+      praticienId: praticienId,
       dateHeure: new Date(dateHeure).toISOString(),
       statut: 'PREVU',
       note: 'Premier bilan',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -22,9 +22,26 @@ export default function CreateSuiviPreventifModal({
 }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [praticienId, setPraticienId] = useState<string | null>(null)
   const [months, setMonths] = useState(3)
   const [dayOfMonth, setDayOfMonth] = useState('15')
   const [time, setTime] = useState('14:00')
+
+  // Récupération du kiné connecté
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('userId', user.id)
+          .single()
+        if (profile) setPraticienId(profile.id)
+      }
+    }
+    getProfile()
+  }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +67,7 @@ export default function CreateSuiviPreventifModal({
       const { error } = await supabase.from('seances').insert([{
         id: crypto.randomUUID(),
         ordonnanceId: ordonnance.id,
-        praticienId: 'k1',
+        praticienId: praticienId,
         dateHeure: date.toISOString(),
         statut: 'PREVU',
         note: `Suivi préventif ${i + 1}/${months}`,

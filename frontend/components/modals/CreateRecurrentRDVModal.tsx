@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -22,9 +22,26 @@ export default function CreateRecurrentRDVModal({
 }) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [praticienId, setPraticienId] = useState<string | null>(null)
   const [weeks, setWeeks] = useState(8)
   const [dayOfWeek, setDayOfWeek] = useState('1') // 1 = Lundi
   const [time, setTime] = useState('14:00')
+
+  // Récupération du kiné connecté
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('userId', user.id)
+          .single()
+        if (profile) setPraticienId(profile.id)
+      }
+    }
+    getProfile()
+  }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +62,7 @@ export default function CreateRecurrentRDVModal({
       const { error } = await supabase.from('seances').insert([{
         id: crypto.randomUUID(),
         ordonnanceId: ordonnance.id,
-        praticienId: 'k1', // À adapter plus tard avec l'utilisateur connecté
+        praticienId: praticienId,
         dateHeure: date.toISOString(),
         statut: 'PREVU',
         note: `Séance récurrente ${i + 1}/${weeks}`,
