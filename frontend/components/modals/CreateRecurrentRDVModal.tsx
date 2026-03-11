@@ -31,11 +31,11 @@ export default function CreateRecurrentRDVModal({
   useEffect(() => {
     const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (user?.email) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('id')
-          .eq('userId', user.id)
+          .eq('email', user.email)
           .single()
         if (profile) setPraticienId(profile.id)
       }
@@ -45,21 +45,21 @@ export default function CreateRecurrentRDVModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!praticienId) return toast.error("Profil praticien non chargé.")
+    
     setLoading(true)
-
     const startDate = new Date()
     const targetDay = parseInt(dayOfWeek)
     const now = new Date().toISOString()
-
-    let successCount = 0
-
+    
+    // Préparation de l'insertion groupée pour éviter les erreurs de boucle
+    const seancesToInsert = []
     for (let i = 0; i < weeks; i++) {
       const date = new Date(startDate)
-      // Calcul du prochain jour de la semaine
       date.setDate(date.getDate() + i * 7 + ((targetDay - date.getDay() + 7) % 7))
       date.setHours(parseInt(time.split(':')[0]), parseInt(time.split(':')[1]), 0, 0)
 
-      const { error } = await supabase.from('seances').insert([{
+      seancesToInsert.push({
         id: crypto.randomUUID(),
         ordonnanceId: ordonnance.id,
         praticienId: praticienId,
@@ -70,11 +70,14 @@ export default function CreateRecurrentRDVModal({
         montant: 9.0,
         createdAt: now,
         updatedAt: now
-      }])
-
-      if (!error) successCount++
+      })
     }
-        // Création de la facture
+
+    const { error: batchError } = await supabase.from('seances').insert(seancesToInsert)
+
+    if (batchError) {
+      toast.error("Erreur séances : " + batchError.message)
+    } else {
       await supabase.from('factures').insert([{
         id: crypto.randomUUID(),
         montantTotal: 9.0 * weeks, 
@@ -84,20 +87,11 @@ export default function CreateRecurrentRDVModal({
         updatedAt: now
       }])
 
-    // Déplacement automatique de l'ordonnance
-    await supabase
-      .from('ordonnances')
-      .update({ statut: 'EN_COURS_DE_SOIN' })
-      .eq('id', ordonnance.id)
-
-    if (successCount > 0) {
-      toast.success(`${successCount} rendez-vous récurrents créés avec succès !`)
+      await supabase.from('ordonnances').update({ statut: 'EN_COURS_DE_SOIN' }).eq('id', ordonnance.id)
+      toast.success(`${weeks} rendez-vous créés !`)
       onSuccess()
       onClose()
-    } else {
-      toast.error("Aucun rendez-vous n'a pu être créé")
     }
-
     setLoading(false)
   }
 

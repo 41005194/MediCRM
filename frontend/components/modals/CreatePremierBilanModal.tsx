@@ -24,15 +24,15 @@ export default function CreatePremierBilanModal({
   const [praticienId, setPraticienId] = useState<string | null>(null)
   const [dateHeure, setDateHeure] = useState('')
 
-  // Récupération du kiné connecté
   useEffect(() => {
     const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (user?.email) {
+        // Correction : Utilisation de l'email pour plus de fiabilité
         const { data: profile } = await supabase
           .from('profiles')
           .select('id')
-          .eq('userId', user.id)
+          .eq('email', user.email)
           .single()
         if (profile) setPraticienId(profile.id)
       }
@@ -43,13 +43,13 @@ export default function CreatePremierBilanModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!dateHeure) return toast.error("Choisissez une date et heure")
+    if (!praticienId) return toast.error("Profil praticien non chargé, veuillez patienter.")
 
     setLoading(true)
-
     const now = new Date().toISOString()
 
-    // 1. Création de la séance
-    const { data: seance } = await supabase.from('seances').insert([{
+    // 1. Création de la séance avec gestion d'erreur
+    const { data: seance, error: seanceError } = await supabase.from('seances').insert([{
       id: crypto.randomUUID(),
       ordonnanceId: ordonnance.id,
       praticienId: praticienId,
@@ -62,25 +62,29 @@ export default function CreatePremierBilanModal({
       updatedAt: now
     }]).select().single()
 
-    // 2. Création automatique de la facture
-    if (seance) {
-      await supabase.from('factures').insert([{
-        id: crypto.randomUUID(),
-        montantTotal: 9.0,
-        statut: 'EN_ATTENTE',
-        patient_id: ordonnance.patientId,
-        createdAt: now,
-        updatedAt: now
-      }])
+    if (seanceError) {
+      toast.error("Erreur lors de la création de la séance : " + seanceError.message)
+      setLoading(false)
+      return // On arrête tout si la séance échoue
     }
 
-    // 3. Déplacement de l'ordonnance
+    // 2. Création de la facture
+    await supabase.from('factures').insert([{
+      id: crypto.randomUUID(),
+      montantTotal: 9.0,
+      statut: 'EN_ATTENTE',
+      patient_id: ordonnance.patientId,
+      createdAt: now,
+      updatedAt: now
+    }])
+
+    // 3. Mise à jour de l'ordonnance
     await supabase.from('ordonnances').update({ statut: 'BILAN_PROGRAMME' }).eq('id', ordonnance.id)
 
     toast.success('Premier bilan créé + facture générée')
     setLoading(false)
-    onClose()
     onSuccess()
+    onClose()
   }
 
   if (!ordonnance) return null

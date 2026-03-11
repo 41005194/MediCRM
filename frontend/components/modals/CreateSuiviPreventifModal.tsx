@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
 export default function CreateSuiviPreventifModal({
@@ -27,44 +26,52 @@ export default function CreateSuiviPreventifModal({
   const [dayOfMonth, setDayOfMonth] = useState('15')
   const [time, setTime] = useState('14:00')
 
-  // Récupération du kiné connecté
+  // Récupération du kiné connecté via l'email (plus fiable)
   useEffect(() => {
     const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (user?.email) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('id')
-          .eq('userId', user.id)
+          .eq('email', user.email)
           .single()
         if (profile) setPraticienId(profile.id)
       }
     }
-    getProfile()
-  }, [supabase])
+    if (open) getProfile()
+  }, [supabase, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    
+    // SÉCURITÉ : On vérifie que le praticien est bien identifié
+    if (!praticienId) {
+      return toast.error("Le profil du praticien n'est pas encore chargé. Veuillez patienter.")
+    }
 
-    let successCount = 0
+    setLoading(true)
     const now = new Date().toISOString()
     const startDate = new Date()
+    const seancesToInsert = []
 
+    // 1. Préparation de la liste des séances
     for (let i = 0; i < months; i++) {
       const date = new Date(startDate)
       date.setMonth(date.getMonth() + i)
       date.setDate(parseInt(dayOfMonth))
-      date.setHours(parseInt(time.split(':')[0]), parseInt(time.split(':')[1]), 0, 0)
-
-      // Sécurité si le jour n'existe pas dans le mois
+      
+      const [hours, minutes] = time.split(':')
+      date.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+      
+      // Gestion des fins de mois (ex: 31 février -> 28/29 février)
       if (date.getDate() !== parseInt(dayOfMonth)) {
         date.setDate(1)
         date.setMonth(date.getMonth() + 1)
         date.setDate(0)
       }
 
-      const { error } = await supabase.from('seances').insert([{
+      seancesToInsert.push({
         id: crypto.randomUUID(),
         ordonnanceId: ordonnance.id,
         praticienId: praticienId,
@@ -75,34 +82,41 @@ export default function CreateSuiviPreventifModal({
         montant: 9.0,
         createdAt: now,
         updatedAt: now
-      }])
-        // Création de facture pour chaque séance
-        await supabase.from('factures').insert([{
-        id: crypto.randomUUID(),
-        montantTotal: 9.0,
-        statut: 'EN_ATTENTE',
-        patient_id: ordonnance.patientId,
-        createdAt: now,
-        updatedAt: now
-        }])
-
-      if (!error) successCount++
+      })
     }
 
-    // Déplacement de l'ordonnance
+    // 2. Insertion groupée des séances
+    const { error: errS } = await supabase.from('seances').insert(seancesToInsert)
+
+    if (errS) {
+      toast.error("Erreur lors de la création des séances : " + errS.message)
+      setLoading(false)
+      return
+    }
+
+    // 3. Création de la facture globale pour le suivi
+    const { error: errF } = await supabase.from('factures').insert([{
+      id: crypto.randomUUID(),
+      montantTotal: 9.0 * months,
+      statut: 'EN_ATTENTE',
+      patient_id: ordonnance.patientId,
+      createdAt: now,
+      updatedAt: now
+    }])
+
+    if (errF) {
+      toast.error("Erreur lors de la génération de la facture : " + errF.message)
+    }
+
+    // 4. Mise à jour du statut de l'ordonnance
     await supabase
       .from('ordonnances')
       .update({ statut: 'SUIVI_PREVENTIF' })
       .eq('id', ordonnance.id)
 
-    if (successCount > 0) {
-      toast.success(`${successCount} rendez-vous de suivi préventif créés !`)
-      onSuccess()
-      onClose()
-    } else {
-      toast.error("Aucun rendez-vous n'a pu être créé")
-    }
-
+    toast.success(`Suivi préventif activé avec ${months} rendez-vous !`)
+    onSuccess()
+    onClose()
     setLoading(false)
   }
 
@@ -119,21 +133,37 @@ export default function CreateSuiviPreventifModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Nombre de mois</Label>
-            <Input type="number" value={months} onChange={(e) => setMonths(parseInt(e.target.value))} min="1" />
+            <Input 
+              type="number" 
+              value={months} 
+              onChange={(e) => setMonths(parseInt(e.target.value))} 
+              min="1" 
+              max="24"
+            />
           </div>
 
           <div>
             <Label>Jour du mois (1-28)</Label>
-            <Input type="number" value={dayOfMonth} onChange={(e) => setDayOfMonth(e.target.value)} min="1" max="28" />
+            <Input 
+              type="number" 
+              value={dayOfMonth} 
+              onChange={(e) => setDayOfMonth(e.target.value)} 
+              min="1" 
+              max="28" 
+            />
           </div>
 
           <div>
-            <Label>Heure</Label>
-            <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            <Label>Heure du rendez-vous</Label>
+            <Input 
+              type="time" 
+              value={time} 
+              onChange={(e) => setTime(e.target.value)} 
+            />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Création en cours...' : `Créer ${months} rendez-vous de suivi`}
+          <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={loading || !praticienId}>
+            {loading ? 'Création en cours...' : `Activer le suivi (${months} mois)`}
           </Button>
         </form>
       </DialogContent>
