@@ -54,18 +54,18 @@ export default function CreateRecurrentRDVModal({
         createdAt: now,
         updatedAt: now
       }])
-        // Création de facture pour chaque séance
-        await supabase.from('factures').insert([{
+
+      if (!error) successCount++
+    }
+        // Création de la facture
+      await supabase.from('factures').insert([{
         id: crypto.randomUUID(),
-        montantTotal: 9.0,
+        montantTotal: 9.0 * weeks, 
         statut: 'EN_ATTENTE',
         patient_id: ordonnance.patientId,
         createdAt: now,
         updatedAt: now
-        }])
-
-      if (!error) successCount++
-    }
+      }])
 
     // Déplacement automatique de l'ordonnance
     await supabase
