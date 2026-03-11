@@ -96,6 +96,17 @@ export default function Kanban({
   const [columns, setColumns] = useState<Record<string, any[]>>({})
   const [activeId, setActiveId] = useState<string | null>(null)
 
+  const findStatus = (id: string) => {
+    // Si l'id est déjà un statut valide (id de colonne)
+    if (STATUTS.some(s => s.id === id)) return id
+    
+    // Sinon, on cherche quelle colonne contient la carte possédant cet ID
+    for (const [status, items] of Object.entries(columns)) {
+      if (items.some(item => item.id === id)) return status
+    }
+    return null
+  }
+
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor))
 
   const loadData = async () => {
@@ -128,47 +139,45 @@ export default function Kanban({
     const { active, over } = event
     setActiveId(null)
 
-    if (!over || active.id === over.id) return
+    if (!over) return
 
+    const activeId = active.id as string
+    const overId = over.id as string
+
+    // CORRECTION : Résoudre les statuts source et destination
+    const overStatus = findStatus(overId)
+    const activeStatus = findStatus(activeId)
+
+    // Si on ne trouve pas de destination ou si on reste dans la même colonne
+    if (!overStatus || overStatus === activeStatus) return
+
+    // Mise à jour Supabase avec le bon statut résolu
     const { error } = await supabase
       .from('ordonnances')
-      .update({ statut: over.id })
-      .eq('id', active.id)
+      .update({ statut: overStatus })
+      .eq('id', activeId)
 
     if (error) {
-      toast.error('Impossible de déplacer')
+      toast.error('Impossible de déplacer la carte')
+      console.error(error)
       return
     }
 
     // optimistic local update so UI reflects the change immediately
     setColumns((prev) => {
-      const columnsCopy: Record<string, any[]> = {}
-      // clone arrays to avoid mutating state directly
-      Object.keys(prev).forEach((key) => {
-        columnsCopy[key] = [...(prev[key] || [])]
-      })
+      const newColumns = { ...prev }
+      
+      // 1. Retirer la carte de sa colonne d'origine
+      const sourceItems = [...(newColumns[activeStatus!] || [])]
+      const cardIndex = sourceItems.findIndex(i => i.id === activeId)
+      const [movedCard] = sourceItems.splice(cardIndex, 1)
+      newColumns[activeStatus!] = sourceItems
 
-      let moved: any = null
-      // remove from old status
-      Object.keys(columnsCopy).forEach((key) => {
-        columnsCopy[key] = columnsCopy[key].filter((o) => {
-          if (o.id === active.id) {
-            moved = o
-            return false
-          }
-          return true
-        })
-      })
-      // if we found the item, push it into new status column
-      if (moved) {
-        moved.statut = over.id as string
-        columnsCopy[over.id as string] = [
-          ...(columnsCopy[over.id as string] || []),
-          moved,
-        ]
-      }
+      // 2. Ajouter la carte à la colonne de destination
+      movedCard.statut = overStatus
+      newColumns[overStatus] = [...(newColumns[overStatus] || []), movedCard]
 
-      return columnsCopy
+      return newColumns
     })
   }
 
